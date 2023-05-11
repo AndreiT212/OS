@@ -63,18 +63,10 @@ void createSymLink(char *path)
     }
 }
 
-// Function to handle options for a regular file
 void handleRegularFile(const char* path) {
     printf("Regular file: %s\n", path);
 
     char options[256];
-    printf("Options:\n");
-    printf("n - Name\n");
-    printf("d - Size\n");
-    printf("h - Hard link count\n");
-    printf("m - Time of last modification\n");
-    printf("a - Access rights\n");
-    printf("l - Create symbolic link\n");
 
     struct stat st;
     if(stat(path,&st)==-1)
@@ -83,12 +75,17 @@ void handleRegularFile(const char* path) {
         exit(-1);
     }
 
-    // Get options from user
     while (1) {
+        printf("Options:\n");
+        printf("n - Name\n");
+        printf("d - Size\n");
+        printf("h - Hard link count\n");
+        printf("m - Time of last modification\n");
+        printf("a - Access rights\n");
+        printf("l - Create symbolic link\n");
         printf("Enter options: ");
         scanf("%s", options);
 
-        // Check if the first character is '-'
         if (options[0] == '-') {
             // Process options
             int i = 1;  // Start from the second character
@@ -125,27 +122,23 @@ void handleRegularFile(const char* path) {
     }
 }
 
-// Function to handle options for a directory
 void handleDirectory(const char* path) {
     printf("Directory: %s\n", path);
 
     char options[256];
-    printf("Options:\n");
-    printf("n - Name\n");
-    printf("d - Size\n");
-    printf("a - Access rights\n");
-    printf("c - Total number of files with .c extension\n");
-
-
 
     // Get options from user
     while (1) {
+        printf("Options:\n");
+        printf("n - Name\n");
+        printf("d - Size\n");
+        printf("a - Access rights\n");
+        printf("c - Total number of files with .c extension\n");
         printf("Enter options: ");
         scanf("%s", options);
 
-        // Check if the first character is '-'
-        if (options[0] == '-') {
-            // Process options
+        if (options[0] == '-')
+        {
             int i = 1;  // Start from the second character
             while (options[i] != '\0') {
                 switch (options[i]) {
@@ -179,11 +172,80 @@ void handleDirectory(const char* path) {
     }
 }
 
+void handleSymbolicLink(char* path)
+{
+    struct stat st;
+    char options[256];
+
+    printf("Symbolic Link: %s\n", path);
+
+    if (lstat(path, &st) < 0) {
+        printf("Failed to get symbolic link stats: %s\n", path);
+        return;
+    }
+
+    printf("Options: (Example input: -nld)\n");
+    printf("-n: Display symbolic link name\n");
+    printf("-l: Delete symbolic link\n");
+    printf("-d: Display size of symbolic link\n");
+    printf("-t: Display size of target file\n");
+    printf("-a: Display access rights\n");
+    printf("Enter options: ");
+
+    while (1)
+    {
+        // Read options from user
+        fgets(options, sizeof(options), stdin);
+
+        if (options[0] == '-') {
+            // Process options
+            int i=1;
+            while(options[i]!='\0')
+            {
+                char option = options[i];
+                switch (option) {
+                    case 'n':
+                        printf("Symbolic Link Name: %s\n", path);
+                        break;
+                    case 'l':
+                        if (unlink(path) == 0) {
+                            printf("Symbolic link deleted successfully\n");
+                            return;
+                        } else {
+                            printf("Failed to delete symbolic link\n");
+                        }
+                        break;
+                    case 'd':
+                        printf("Size of Symbolic Link: %ld bytes\n", st.st_size);
+                        break;
+                    case 't': {
+                        struct stat targetStat;
+                        if (stat(path, &targetStat) == 0) {
+                            printf("Size of Target File: %ld bytes\n", targetStat.st_size);
+                        } else {
+                            printf("Failed to get target file stats\n");
+                        }
+                        break;
+                    }
+                    case 'a':
+                        printRights(st.st_mode);
+                        break;
+                    default:
+                        return;
+                }
+                i++;
+            }
+        } else {
+            printf("Invalid options format. Please start with '-'\n");
+        }
+    }
+}
+
 int main(int argc, char **argv) 
 {
     for (int i = 1; i < argc; i++) 
     {
-        handleDirectory(argv[i]);
+        handleSymbolicLink(argv[i]);
     }
     return 0;
 }
