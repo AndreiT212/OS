@@ -8,6 +8,26 @@
 #include <fcntl.h>
 #include <dirent.h>
 
+typedef enum 
+{
+    REGULAR,
+    DIRECTORY,
+    SYM,
+    UNKNOWN
+}Type;
+
+Type getType(mode_t mode)
+{
+    if(S_ISLNK(mode)) {
+        return SYM;
+    }else if (S_ISDIR(mode)){
+            return DIRECTORY;
+    }else if (S_ISREG(mode)){
+            return REGULAR;
+    }else
+        return UNKNOWN;
+}
+
 void printRights(mode_t mode)
 {
 
@@ -63,7 +83,8 @@ void createSymLink(char *path)
     }
 }
 
-void handleRegularFile(const char* path) {
+void handleRegularFile(const char* path) 
+{
     printf("Regular file: %s\n", path);
 
     char options[256];
@@ -75,7 +96,8 @@ void handleRegularFile(const char* path) {
         exit(-1);
     }
 
-    while (1) {
+    while (1) 
+    {
         printf("Options:\n");
         printf("n - Name\n");
         printf("d - Size\n");
@@ -86,11 +108,13 @@ void handleRegularFile(const char* path) {
         printf("Enter options: ");
         scanf("%s", options);
 
-        if (options[0] == '-') {
-            // Process options
-            int i = 1;  // Start from the second character
-            while (options[i] != '\0') {
-                switch (options[i]) {
+        if (options[0] == '-') 
+        {
+            int i = 1;  
+            while (options[i] != '\0') 
+            {
+                switch (options[i]) 
+                {
                     case 'n':
                         printf("Name: %s\n", path);
                         break;
@@ -115,20 +139,21 @@ void handleRegularFile(const char* path) {
                 }
                 i++;
             }
-            break;  // Exit the loop
+            break;
         } else {
             printf("Invalid options format. Please start with '-'\n");
         }
     }
 }
 
-void handleDirectory(const char* path) {
+void handleDirectory(const char* path) 
+{
     printf("Directory: %s\n", path);
 
     char options[256];
 
-    // Get options from user
-    while (1) {
+    while (1) 
+    {
         printf("Options:\n");
         printf("n - Name\n");
         printf("d - Size\n");
@@ -139,9 +164,10 @@ void handleDirectory(const char* path) {
 
         if (options[0] == '-')
         {
-            int i = 1;  // Start from the second character
+            int i = 1;  
             while (options[i] != '\0') {
-                switch (options[i]) {
+                switch (options[i]) 
+                {
                     case 'n':
                         printf("Name: %s\n", path);
                         break;
@@ -165,7 +191,7 @@ void handleDirectory(const char* path) {
                 }
                 i++;
             }
-            break;  // Exit the loop
+            break;  
         } else {
             printf("Invalid options format. Please start with '-'\n");
         }
@@ -174,36 +200,36 @@ void handleDirectory(const char* path) {
 
 void handleSymbolicLink(char* path)
 {
+    printf("Symbolic Link: %s\n", path);
+
     struct stat st;
     char options[256];
 
-    printf("Symbolic Link: %s\n", path);
-
-    if (lstat(path, &st) < 0) {
+    if (lstat(path, &st) < 0) 
+    {
         printf("Failed to get symbolic link stats: %s\n", path);
         return;
     }
 
-    printf("Options: (Example input: -nld)\n");
-    printf("-n: Display symbolic link name\n");
-    printf("-l: Delete symbolic link\n");
-    printf("-d: Display size of symbolic link\n");
-    printf("-t: Display size of target file\n");
-    printf("-a: Display access rights\n");
-    printf("Enter options: ");
-
     while (1)
     {
-        // Read options from user
-        fgets(options, sizeof(options), stdin);
+        printf("Options: (Example input: -nld)\n");
+        printf("-n: Display symbolic link name\n");
+        printf("-l: Delete symbolic link\n");
+        printf("-d: Display size of symbolic link\n");
+        printf("-t: Display size of target file\n");
+        printf("-a: Display access rights\n");
+        printf("Enter options: ");
+        scanf("%s", options);
 
-        if (options[0] == '-') {
-            // Process options
+        if (options[0] == '-') 
+        {
             int i=1;
             while(options[i]!='\0')
             {
                 char option = options[i];
-                switch (option) {
+                switch (option) 
+                {
                     case 'n':
                         printf("Symbolic Link Name: %s\n", path);
                         break;
@@ -231,10 +257,12 @@ void handleSymbolicLink(char* path)
                         printRights(st.st_mode);
                         break;
                     default:
-                        return;
+                        printf("Invalid option: %c\n", options[i]);
+                        break;
                 }
                 i++;
             }
+            break;
         } else {
             printf("Invalid options format. Please start with '-'\n");
         }
@@ -243,9 +271,41 @@ void handleSymbolicLink(char* path)
 
 int main(int argc, char **argv) 
 {
+    struct stat st;
+
     for (int i = 1; i < argc; i++) 
     {
-        handleSymbolicLink(argv[i]);
+        char *path=argv[i];
+
+        if(stat(path,&st)!=0)
+        {
+            perror("Couldn't get file info");
+            exit(-1);
+        }
+
+        Type inputType=getType(st.st_mode);
+
+        switch (inputType)
+        {
+        case REGULAR:{
+            handleRegularFile(path);
+            break;
+        }
+        case DIRECTORY:{
+            handleDirectory(path);
+            break;
+        }
+        case SYM:{
+            handleSymbolicLink(path);
+            break;
+        }
+        case UNKNOWN:{
+            perror("Not a valid type of file");
+            break;
+        }
+        default:
+            break;
+        }
     }
     return 0;
 }
